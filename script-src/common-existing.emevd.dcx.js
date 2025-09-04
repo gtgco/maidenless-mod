@@ -442,6 +442,8 @@ $Event(0, Default, function() {
     InitializeEvent(0, 9943, 0);
     InitializeEvent(0, 9940, 0);
     $InitializeEvent(0, 1700);
+    $InitializeEvent(0, 20000000); // ≥2 runes → unlock Leyndell
+    $InitializeEvent(0, 20000010); // Rold Medallion after Morgott
 });
 
 $Event(50, Default, function() {
@@ -8961,4 +8963,32 @@ $Event(9950, Default, function(eventFlagId, eventFlagId2) {
     SetEventFlagID(eventFlagId2, ON);
 });
 
+// === Maidenless patch begin ===
+const ROLD_MEDALLION_GOODS_ID = 8107;
+const FLAG_MORGOTT_DEFEATED         = 9104; // global
+const FLAG_LEYNDELL_REQUIREMENT_MET = 182;  // ≥2 runes gate
+const FORCE_LEYNDELL_OK = 0;
 
+$Event(20000000, Restart, function () {
+    EndIf(EventFlag(FLAG_LEYNDELL_REQUIREMENT_MET));
+    WaitFor(
+        (EventFlag(191) && (EventFlag(192) || EventFlag(193) || EventFlag(194) || EventFlag(195) || EventFlag(196) || EventFlag(197))) ||
+        (EventFlag(192) && (EventFlag(193) || EventFlag(194) || EventFlag(195) || EventFlag(196) || EventFlag(197))) ||
+        (EventFlag(193) && (EventFlag(194) || EventFlag(195) || EventFlag(196) || EventFlag(197))) ||
+        (EventFlag(194) && (EventFlag(195) || EventFlag(196) || EventFlag(197))) ||
+        (EventFlag(195) && (EventFlag(196) || EventFlag(197))) ||
+        (EventFlag(196) && EventFlag(197)) ||
+        (FORCE_LEYNDELL_OK == 1)
+    );
+    SetEventFlagID(FLAG_LEYNDELL_REQUIREMENT_MET, ON);
+    EndEvent();
+});
+
+$Event(20000010, Restart, function () {
+    WaitFor(EventFlag(FLAG_MORGOTT_DEFEATED)); // 9104
+    if (!PlayerHasItem(ItemType.Goods, ROLD_MEDALLION_GOODS_ID)) {
+        DirectlyGivePlayerItem(ItemType.Goods, ROLD_MEDALLION_GOODS_ID, 0, 1);
+    }
+    EndEvent();
+});
+// === Maidenless patch end ===
