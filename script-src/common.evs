@@ -1,33 +1,34 @@
-// common.evs — All maidenless events in one file (no includes).
-// Works with DarkScript3. Build → event/common.emevd → pack to .dcx → load via Mod Engine.
+// common.evs — Maidenless (v3.2 minimal)
+// Single-file EVS for DarkScript3. Build → event/common.emevd → pack to .dcx → load via UXM loose files or Mod Engine.
+// Design goal: **only** remove hard locks. No custom burn prompt; the player reaches Farum Azula via vanilla Three Fingers self‑sacrifice after Fire Giant.
 
 // ========= Config toggles =========
 define FORCE_LEYNDELL_OK = 0;         // Set to 1 ONCE on old/glitched saves, load, then set back to 0.
 define DEBUG_STATUS_TOAST = 1;        // Show a small toast on load; set to 0 for release.
+define DEBUG_PRINT_FLAGS  = 0;        // When 1, prints a few key flags as toasts on load.
 
 // ========= IDs / constants (confirm in your dump if needed) =========
-define ROLD_MEDALLION_GOODS_ID = 8107;       // Rold Medallion (adjust if needed)
-define FLAG_MORGOTT_DEFEATED   = 11000800;
-define FLAG_FIRE_GIANT_DEFEATED= 9131;
+define ROLD_MEDALLION_GOODS_ID = 8107;       // Rold Medallion (verify in EquipParamGoods)
+
+define FLAG_MORGOTT_DEFEATED    = 9104;     // **Global** Morgott defeated (from Leyndell file: Event 11002800)
+define FLAG_FIRE_GIANT_DEFEATED = 9131;     // Global Fire Giant defeated (not used here; burn handled by vanilla)
 
 // Story/world flags (commonly referenced)
+// NOTE: We **do not** spoof Roundtable flags in this minimal mod.
 define FLAG_LEYNDELL_REQUIREMENT_MET = 182;  // Great Rune Count: 2
-define FLAG_ROUNDTABLE_REACHED       = 104;
-define FLAG_ROUNDTABLE_INTRO         = 105;
-define FLAG_REACHED_FORGE            = 110;
-define FLAG_ERDTREE_ON_FIRE          = 118;
-define FLAG_WORLD_BURN_VARIANT_A     = 300;
 
 // ========= Init =========
 $Event(0, Default, function(){
-    if (DEBUG_STATUS_TOAST == 1) { DisplayStatusMessage("Maidenless mod active", 1); }
-    InitializeEvent(0, 20000000); // ≥2 Great Runes -> Leyndell ok + spoof Roundtable
+    if (DEBUG_STATUS_TOAST == 1) { DisplayStatusMessage("Maidenless mod active (minimal)", 1); }
+    InitializeEvent(0, 20000000); // ≥2 Great Runes -> enable Leyndell access
     InitializeEvent(0, 20000010); // Rold Medallion after Morgott
-    InitializeEvent(0, 20000020); // Forge prompt -> burn -> Farum Azula
+    if (DEBUG_PRINT_FLAGS == 1) { InitializeEvent(0, 20009999); }
 });
 
 // ========= Event 1: Capital access with ≥2 Great Runes (no Roundtable needed) =========
+// ========= Event 1: Capital access with ≥2 Great Runes (client-local) =========
 $Event(20000000, Restart, function() {
+    // No host-only gate: every Seamless player can satisfy this locally.
     if (EventFlag(FLAG_LEYNDELL_REQUIREMENT_MET)) { EndEvent(); }
 
     var count = 0;
@@ -40,40 +41,53 @@ $Event(20000000, Restart, function() {
     if (EventFlag(197)) count += 1; // Rennala (Unborn)
 
     if (count >= 2 || FORCE_LEYNDELL_OK == 1) {
+        // Local flag set; no networkconnected needed since each client owns their save.
         SetEventFlagID(FLAG_LEYNDELL_REQUIREMENT_MET, ON);
-        SetEventFlagID(FLAG_ROUNDTABLE_REACHED, ON);
-        SetEventFlagID(FLAG_ROUNDTABLE_INTRO, ON);
+        EndEvent();
     }
+
+    // Wait for a NEW rune to be obtained (so we don't spin)
+    let w191 = !EventFlag(191);
+    let w192 = !EventFlag(192);
+    let w193 = !EventFlag(193);
+    let w194 = !EventFlag(194);
+    let w195 = !EventFlag(195);
+    let w196 = !EventFlag(196);
+    let w197 = !EventFlag(197);
+
+    WaitFor(
+        (w191 && EventFlag(191)) ||
+        (w192 && EventFlag(192)) ||
+        (w193 && EventFlag(193)) ||
+        (w194 && EventFlag(194)) ||
+        (w195 && EventFlag(195)) ||
+        (w196 && EventFlag(196)) ||
+        (w197 && EventFlag(197)) ||
+        (FORCE_LEYNDELL_OK == 1)
+    );
+    RestartEvent();
 });
+
 
 // ========= Event 2: Auto-grant Rold Medallion after Morgott =========
+// Rold Medallion after Morgott (client-local, Seamless-friendly)
 $Event(20000010, Restart, function() {
-    WaitFor(EventFlag(FLAG_MORGOTT_DEFEATED));
+    WaitFor(EventFlag(FLAG_MORGOTT_DEFEATED));   // 9104
     if (!PlayerHasItem(ItemType.Goods, ROLD_MEDALLION_GOODS_ID)) {
-        AwardItemsIncludingClients(ROLD_MEDALLION_GOODS_ID);
+        DirectlyGivePlayerItem(ItemType.Goods, ROLD_MEDALLION_GOODS_ID, 0, 1);
     }
 });
 
-// ========= Event 3: Burn at the Forge and warp to Farum Azula =========
-// Fill region IDs before use; until then this event will do nothing.
-$Event(20000020, Restart, function() {
-    if (!EventFlag(FLAG_FIRE_GIANT_DEFEATED)) { EndEvent(); }
-    if (EventFlag(FLAG_ERDTREE_ON_FIRE)) { EndEvent(); }
-
-    // TODO: Replace REGION_FORGE_TRIGGER with your Forge area region entity ID.
-    // WaitFor(InArea(10000, REGION_FORGE_TRIGGER));
-
-    // Fallback: simple yes/no prompt anywhere (for quick testing); replace with ActionButton near the Forge asset.
-    DisplayGenericDialog(1, PromptType.YESNO, NumberofOptions.TwoButtons, 0, 0);
-    WaitFixedTimeSeconds(0.1);
-
-    if (GetGenericDialogResult() == 1) {
-        SetEventFlagID(FLAG_REACHED_FORGE, ON);
-        SetEventFlagID(FLAG_ERDTREE_ON_FIRE, ON);
-        SetEventFlagID(FLAG_WORLD_BURN_VARIANT_A, ON);
-
-        // TODO: Replace with your real map/region IDs. Example target: Crumbling Beast Grave.
-        // WarpPlayer(mapID, blockID, areaID, sectionID, REGION_CFA_SPAWN, angle, distance);
-        // WarpPlayer(13, 0, 0, 0, REGION_CFA_SPAWN, 0, 0);
-    }
+// ========= Debug helper: print a few flags on load =========
+$Event(20009999, Default, function() {
+    DisableNetworkSync();
+    if (EventFlag(191)) DisplayStatusMessage("Godrick rune flag ON", 1);
+    if (EventFlag(192)) DisplayStatusMessage("Radahn rune flag ON", 1);
+    if (EventFlag(193)) DisplayStatusMessage("Morgott rune flag ON", 1);
+    if (EventFlag(194)) DisplayStatusMessage("Rykard rune flag ON", 1);
+    if (EventFlag(195)) DisplayStatusMessage("Mohg rune flag ON", 1);
+    if (EventFlag(196)) DisplayStatusMessage("Malenia rune flag ON", 1);
+    if (EventFlag(197)) DisplayStatusMessage("Rennala rune flag ON", 1);
+    if (EventFlag(FLAG_LEYNDELL_REQUIREMENT_MET)) DisplayStatusMessage("Flag 182 (≥2 runes) ON", 1);
+    if (EventFlag(FLAG_MORGOTT_DEFEATED))        DisplayStatusMessage("Flag 9104 (Morgott) ON", 1);
 });
