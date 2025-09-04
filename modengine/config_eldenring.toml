@@ -1,0 +1,4 @@
+# Minimal Mod Engine 2 config example
+mods = [
+  { enabled = true, name = "Maidenless", path = "mod\\maidenless" }
+]

@@ -1,0 +1,11 @@
+# Copy to paths.toml and set your local tool paths
+# Use either the EXE *or* the CLI DLL. The build script handles both.
+DarkScript3Cli = "C:/Tools/DarkScript3/DarkScript3.exe"
+# DarkScript3Cli = "C:/Tools/DarkScript3/DarkScript3.CLI.dll"
+
+# Optional packers (manual/GUI is fine too)
+WitchyBND     = "C:/Tools/WitchyBND/WitchyBND.exe"
+Yabber        = "C:/Tools/Yabber/Yabber.exe"
+
+# Optional: your Elden Ring install (for reference/unpack helpers)
+EldenRingGame = "C:/Program Files (x86)/Steam/steamapps/common/ELDEN RING/Game"

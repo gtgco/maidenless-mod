@@ -1,0 +1,7 @@
+.DS_Store
+Thumbs.db
+*.log
+*.zip
+event/*.emevd
+event/*.emevd.dcx
+config/paths.toml

@@ -1,0 +1,79 @@
+// common.evs — All maidenless events in one file (no includes).
+// Works with DarkScript3. Build → event/common.emevd → pack to .dcx → load via Mod Engine.
+
+// ========= Config toggles =========
+define FORCE_LEYNDELL_OK = 0;         // Set to 1 ONCE on old/glitched saves, load, then set back to 0.
+define DEBUG_STATUS_TOAST = 1;        // Show a small toast on load; set to 0 for release.
+
+// ========= IDs / constants (confirm in your dump if needed) =========
+define ROLD_MEDALLION_GOODS_ID = 8107;       // Rold Medallion (adjust if needed)
+define FLAG_MORGOTT_DEFEATED   = 11000800;
+define FLAG_FIRE_GIANT_DEFEATED= 9131;
+
+// Story/world flags (commonly referenced)
+define FLAG_LEYNDELL_REQUIREMENT_MET = 182;  // Great Rune Count: 2
+define FLAG_ROUNDTABLE_REACHED       = 104;
+define FLAG_ROUNDTABLE_INTRO         = 105;
+define FLAG_REACHED_FORGE            = 110;
+define FLAG_ERDTREE_ON_FIRE          = 118;
+define FLAG_WORLD_BURN_VARIANT_A     = 300;
+
+// ========= Init =========
+$Event(0, Default, function(){
+    if (DEBUG_STATUS_TOAST == 1) { DisplayStatusMessage("Maidenless mod active", 1); }
+    InitializeEvent(0, 20000000); // ≥2 Great Runes -> Leyndell ok + spoof Roundtable
+    InitializeEvent(0, 20000010); // Rold Medallion after Morgott
+    InitializeEvent(0, 20000020); // Forge prompt -> burn -> Farum Azula
+});
+
+// ========= Event 1: Capital access with ≥2 Great Runes (no Roundtable needed) =========
+$Event(20000000, Restart, function() {
+    if (EventFlag(FLAG_LEYNDELL_REQUIREMENT_MET)) { EndEvent(); }
+
+    var count = 0;
+    if (EventFlag(191)) count += 1; // Godrick
+    if (EventFlag(192)) count += 1; // Radahn
+    if (EventFlag(193)) count += 1; // Morgott
+    if (EventFlag(194)) count += 1; // Rykard
+    if (EventFlag(195)) count += 1; // Mohg
+    if (EventFlag(196)) count += 1; // Malenia
+    if (EventFlag(197)) count += 1; // Rennala (Unborn)
+
+    if (count >= 2 || FORCE_LEYNDELL_OK == 1) {
+        SetEventFlagID(FLAG_LEYNDELL_REQUIREMENT_MET, ON);
+        SetEventFlagID(FLAG_ROUNDTABLE_REACHED, ON);
+        SetEventFlagID(FLAG_ROUNDTABLE_INTRO, ON);
+    }
+});
+
+// ========= Event 2: Auto-grant Rold Medallion after Morgott =========
+$Event(20000010, Restart, function() {
+    WaitFor(EventFlag(FLAG_MORGOTT_DEFEATED));
+    if (!PlayerHasItem(ItemType.Goods, ROLD_MEDALLION_GOODS_ID)) {
+        AwardItemsIncludingClients(ROLD_MEDALLION_GOODS_ID);
+    }
+});
+
+// ========= Event 3: Burn at the Forge and warp to Farum Azula =========
+// Fill region IDs before use; until then this event will do nothing.
+$Event(20000020, Restart, function() {
+    if (!EventFlag(FLAG_FIRE_GIANT_DEFEATED)) { EndEvent(); }
+    if (EventFlag(FLAG_ERDTREE_ON_FIRE)) { EndEvent(); }
+
+    // TODO: Replace REGION_FORGE_TRIGGER with your Forge area region entity ID.
+    // WaitFor(InArea(10000, REGION_FORGE_TRIGGER));
+
+    // Fallback: simple yes/no prompt anywhere (for quick testing); replace with ActionButton near the Forge asset.
+    DisplayGenericDialog(1, PromptType.YESNO, NumberofOptions.TwoButtons, 0, 0);
+    WaitFixedTimeSeconds(0.1);
+
+    if (GetGenericDialogResult() == 1) {
+        SetEventFlagID(FLAG_REACHED_FORGE, ON);
+        SetEventFlagID(FLAG_ERDTREE_ON_FIRE, ON);
+        SetEventFlagID(FLAG_WORLD_BURN_VARIANT_A, ON);
+
+        // TODO: Replace with your real map/region IDs. Example target: Crumbling Beast Grave.
+        // WarpPlayer(mapID, blockID, areaID, sectionID, REGION_CFA_SPAWN, angle, distance);
+        // WarpPlayer(13, 0, 0, 0, REGION_CFA_SPAWN, 0, 0);
+    }
+});
