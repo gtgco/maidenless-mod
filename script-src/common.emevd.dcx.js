@@ -8964,31 +8964,19 @@ $Event(9950, Default, function(eventFlagId, eventFlagId2) {
 });
 
 // === Maidenless patch begin ===
-const ROLD_MEDALLION_GOODS_ID = 8107;
-const FLAG_MORGOTT_DEFEATED         = 9104; // global
-const FLAG_LEYNDELL_REQUIREMENT_MET = 182;  // ≥2 runes gate
-const FORCE_LEYNDELL_OK = 0;
-
 $Event(20000000, Restart, function () {
-    EndIf(EventFlag(FLAG_LEYNDELL_REQUIREMENT_MET));
-    WaitFor(
-        (EventFlag(191) && (EventFlag(192) || EventFlag(193) || EventFlag(194) || EventFlag(195) || EventFlag(196) || EventFlag(197))) ||
-        (EventFlag(192) && (EventFlag(193) || EventFlag(194) || EventFlag(195) || EventFlag(196) || EventFlag(197))) ||
-        (EventFlag(193) && (EventFlag(194) || EventFlag(195) || EventFlag(196) || EventFlag(197))) ||
-        (EventFlag(194) && (EventFlag(195) || EventFlag(196) || EventFlag(197))) ||
-        (EventFlag(195) && (EventFlag(196) || EventFlag(197))) ||
-        (EventFlag(196) && EventFlag(197)) ||
-        (FORCE_LEYNDELL_OK == 1)
-    );
-    SetEventFlagID(FLAG_LEYNDELL_REQUIREMENT_MET, ON);
+    DisableNetworkSync(); 
+    EndIf(PlayerHasItem(ItemType.Goods, 8107));
+    WaitFor(EventFlag(9104) || EventFlag(61104) || EventFlag(11000800));
+    AwardItemLot(100010);
     EndEvent();
 });
 
 $Event(20000010, Restart, function () {
-    WaitFor(EventFlag(FLAG_MORGOTT_DEFEATED)); // 9104
-    if (!PlayerHasItem(ItemType.Goods, ROLD_MEDALLION_GOODS_ID)) {
-        DirectlyGivePlayerItem(ItemType.Goods, ROLD_MEDALLION_GOODS_ID, 0, 1);
-    }
+    EndIf(EventFlag(104) && EventFlag(105));
+    WaitFor(EventFlag(182));
+    SetNetworkconnectedEventFlagID(104, ON);
+    SetNetworkconnectedEventFlagID(105, ON);
     EndEvent();
 });
 // === Maidenless patch end ===
