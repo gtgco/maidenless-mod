@@ -442,8 +442,7 @@ $Event(0, Default, function() {
     InitializeEvent(0, 9943, 0);
     InitializeEvent(0, 9940, 0);
     $InitializeEvent(0, 1700);
-    $InitializeEvent(0, 20000000); // ≥2 runes → unlock Leyndell
-    $InitializeEvent(0, 20000010); // Rold Medallion after Morgott
+    $InitializeEvent(0, 20000000); // Rold Medallion after Morgott
 });
 
 $Event(50, Default, function() {
@@ -8969,14 +8968,6 @@ $Event(20000000, Restart, function () {
     EndIf(PlayerHasItem(ItemType.Goods, 8107));
     WaitFor(EventFlag(9104) || EventFlag(61104) || EventFlag(11000800));
     AwardItemLot(100010);
-    EndEvent();
-});
-
-$Event(20000010, Restart, function () {
-    EndIf(EventFlag(104) && EventFlag(105));
-    WaitFor(EventFlag(182));
-    SetNetworkconnectedEventFlagID(104, ON);
-    SetNetworkconnectedEventFlagID(105, ON);
     EndEvent();
 });
 // === Maidenless patch end ===
